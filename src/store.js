@@ -1,45 +1,62 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 
+import fetch from 'node-fetch';
+
 Vue.use(Vuex);
 
-/**
- * @todo - Instead of doing an fetch for every endpoint,
- * once the data is stored, it should be looked up first.
- * If the data cant be located in our store then we should
- * fetch it from its proper endpoint. A library structure
- * would be more ideal where the endpoint/file is the key
- */
 export const store = new Vuex.Store({
   state: {
     setData: {},
+    setsData: [],
     graphData: {},
     isLoading: true,
   },
   getters: {
     setData: state => state.setData,
+    setsData: state => state.setsData,
     graphData: state => state.graphData,
     isLoading: state => state.isLoading,
   },
   actions: {
-    'update set data': async (store, object) => {
-      return await store.commit('UPDATE_SET_DATA', object);
+    UPDATE_SET_DATA: (store, object) => {
+      store.commit('SET_SET_DATA', object);
     },
-    'update graph data': async (store, object) => {
-      return await store.commit('UPDATE_GRAPH_DATA', object);
+    UPDATE_SETS_DATA: async (store, url) => {
+      try {
+        const awaited = await fetch(url);
+        const promised = await awaited.json();
+        const sorted = promised.sort((a, b) => {
+          // Sort by latest
+          const aDate = new Date(a.releaseDate);
+          const bDate = new Date(b.releaseDate);
+
+          return bDate - aDate;
+        });
+
+        return store.commit('SET_SETS_DATA', sorted);
+      } catch (err) {
+        console.error(err);
+      }
     },
-    'update loader': async (store, value) => {
-      return await store.commit('UPDATE_LOADER', value);
+    UPDATE_GRAPH_DATA: (store, object) => {
+      store.commit('SET_GRAPH_DATA', object);
+    },
+    UPDATE_LOADER: (store, value) => {
+      store.commit('SET_LOADER', value);
     },
   },
   mutations: {
-    UPDATE_SET_DATA: (state, {file, data}) => {
-      state.setData[file] = data;
+    SET_SET_DATA: (state, { setCode, setData }) => {
+      state.setData[setCode] = setData;
     },
-    UPDATE_GRAPH_DATA: (state, data) => {
+    SET_SETS_DATA: (state, data) => {
+      state.setsData = data;
+    },
+    SET_GRAPH_DATA: (state, data) => {
       state.graphData = data;
     },
-    UPDATE_LOADER: (state, value) => {
+    SET_LOADER: (state, value) => {
       state.isLoading = value;
     },
   },

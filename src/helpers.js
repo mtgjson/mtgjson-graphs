@@ -2,26 +2,13 @@ import { Chart } from 'chart.js';
 // Configuration for Chart.js
 import chartConfig from './data/chart-config';
 
-// https://gomakethings.com/how-to-get-an-elements-siblings-with-vanilla-javascript/
-export const getDOMSiblings = el => {
-  let sibling = el.parentNode.firstChild;
-  const siblings = [];
-
-  for (; sibling; sibling = sibling.nextSibling) {
-    if (sibling.nodeType !== 1 || sibling === el) continue;
-    siblings.push(sibling);
-  }
-
-  return siblings;
-};
-
 // https://gist.github.com/0x263b/2bdd90886c2036a1ad5bcf06d6e6fb37
-export const stringsToColors = (strs = []) => {
+export const stringsToColors = (strs = [], seed = 5) => {
   return strs.map(str => {
     let hash = 0;
     if (str.length === 0) return hash;
     for (var i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      hash = str.charCodeAt(i) + ((hash << seed) - hash);
       hash = hash & hash;
     }
     let rgb = [0, 0, 0];
@@ -34,7 +21,7 @@ export const stringsToColors = (strs = []) => {
 };
 
 // Generate a Chart.js graph
-export const generatePieChart = (graphData, dataLabel) => {
+export const generatePieChart = (graphData, seed) => {
   const ctx = document.getElementById('graph-container');
   const config = chartConfig();
   const data = {};
@@ -46,16 +33,16 @@ export const generatePieChart = (graphData, dataLabel) => {
 
   // Massage our data a bit for Chart.js
   for (let object in data) {
-    const { label, value } = data[object];
+    const { type, value } = data[object];
 
-    config.data.labels.push(label);
+    config.data.labels.push(type);
     config.data.datasets[0].data.push(value);
   }
 
   // Assign unique colors to each piece of the pie chart
-  config.data.datasets[0].backgroundColor = stringsToColors(config.data.labels);
+  config.data.datasets[0].backgroundColor = stringsToColors(config.data.labels, seed);
   // Assign a label to render for the data
-  config.options.title.text = `${dataLabel} - ${config.data.labels.length} Card Types`;
+  config.options.title.text = `${config.data.labels.length} Card Types`;
 
   return new Chart(ctx, config);
 };

@@ -5,55 +5,37 @@
         h1 <img class="mtg-icon" src="../assets/images/mtg-pw-icon.svg" /> Magic: The Gathering Card Graph
         p.intro
           strong This Vue/Chart.js-based data visualization fetches and charts <strong>Magic: The Gathering JSON</strong> data for a single set of cards.
-        p <strong>How to Use:</strong> Click on any tab button below to update the chart with a new data set.
-        p <strong>The Data:</strong> Currently the only data that is visualized is the <pre>types</pre> key from each <pre>card</pre> object and only from pre-selected endpoints (though many are available).
+        p <strong>How to Use:</strong> Select a set from the options below to update the chart with a new data set. Hover over the chart for a count of each card type.
+        p <strong>The Data:</strong> The data that is visualized is the <pre>types</pre> property from each <pre>card</pre> object.
 
       .graph-content
-        .graph-tabs
-          button.graph-tabs--tab(
-          v-for="(value, key) in endpoints"
-          ref="graph-tab"
-          @click.prevent="selectTab($event, value)") {{ value.label }}
+        .graph-select
+          p Select a Set:
+          select(v-if="setsData.length > 0" v-model="selectedSet" @change.prevent="selectOption" ref="graphSelect")
+            option(v-for="(set, key) in setsData"
+            :value="set") {{ set.name }}
+          select(v-else)
+            option Loading...
         h6(v-if="!chartData") Loading...
         canvas#graph-container(:class="{isLoading}")
 
 </template>
 
 <script>
-import { generatePieChart, getDOMSiblings } from "../helpers.js";
+import { generatePieChart } from '../helpers.js';
 
 export default {
-  name: "Graph",
+  name: 'Graph',
   data() {
     return {
-      // Load data on creation
-      endpointBase: "https://mtgjson.com/json",
-      comparisonKey: "types",
-      chartData: undefined,
-      // Data refetch.
-      // true => real-time data updates by fetching from the API again.
-      // false => render graph data from the store after the first fetch.
-      shouldRefetch: false,
+      endpointBase: 'https://mtgjson.com/json',
+      comparisonKey: 'types',
+      chartData: null,
+      selectedSet: {},
       autoLoad: true,
       inited: false,
-      endpoints: [
-        {
-          file: "WAR",
-          label: "War of the Spark"
-        },
-        {
-          file: "DOM",
-          label: "Dominaria"
-        },
-        {
-          file: "V17",
-          label: "From the Vault: Transform"
-        },
-        {
-          file: "MM3",
-          label: "Modern Masters 2017"
-        }
-      ]
+      colorSeed: 3432, // Random number seed to change chart colors tonally, default: 5
+      shouldRefetch: false // true: fetch every call, false: use store
     };
   },
   computed: {
@@ -65,110 +47,100 @@ export default {
     },
     setData() {
       return this.$store.getters.setData;
-    }
+    },
+    setsData() {
+      return this.$store.getters.setsData;
+    },
+  },
+  async created() {
+    // Get all the set endpoints as an array
+    await this.$store.dispatch('UPDATE_SETS_DATA', 'https://www.mtgjson.com/files/SetList.json');
+
+    this.selectedSet = this.$store.getters.setsData[0];
+    this.selectOption();
   },
   methods: {
-    async fetchFromEndpoint({ file, label }) {
-      const pathToFetch = `${this.endpointBase}/${file}.json`;
+    selectOption() {
+      // const $firstOption = Array.from(this.$refs['graphSelect'])[0];
+      const setCode = this.selectedSet.code; // || $firstOption.dataset.value;
+      const setLabel = this.selectedSet.name; // || $firstOption.innerText;
+      // Let's not fetch data from an endpoint if we
+      // have it already in the store
+      const isStored = this.$store.getters.setData[setCode];
 
+      if (this.shouldRefetch || !isStored) {
+        this.fetchFromEndpoint(setCode, setLabel);
+      } else {
+        this.calculateGraphData(this.setData[setCode].cards, setLabel);
+      }
+    },
+    async fetchFromEndpoint(setCode, setLabel) {
       try {
-        await this.$store.dispatch("update loader", true);
-
+        await this.$store.dispatch('UPDATE_LOADER', true);
         let headers = {};
 
         // Ensure that if we have enabled refetch
         // that our fetch request acts like it
-        if(this.shouldRefetch){
+        if (this.shouldRefetch) {
           headers = new Headers();
           headers.append('pragma', 'no-cache');
           headers.append('cache-control', 'no-cache');
         }
 
-        const toFetch = await fetch(pathToFetch, headers);
-        const data = {
-          file,
-          data: await toFetch.json()
+        const awaited = await fetch(`${this.endpointBase}/${setCode}.json`, headers);
+        const promised = await awaited.json();
+
+        const newSetData = {
+          setCode,
+          setData: promised,
         };
 
-        await this.$store.dispatch("update set data", data);
+        await this.$store.dispatch('UPDATE_SET_DATA', newSetData);
 
-        await this.calculateGraphData(this.setData[file].cards, label);
-      } catch (e) {
+        await this.calculateGraphData(this.setData[setCode].cards, setLabel);
+      } catch (err) {
         // Bad fetch, reset the loader
-        await this.$store.dispatch("update loader", false);
+        await this.$store.dispatch('UPDATE_LOADER', false);
 
-        throw new Error(e);
+        throw new Error(err);
       }
     },
-    calculateGraphData(data, label) {
-      if (data) {
+    async calculateGraphData(setCards) {
+      if (setCards) {
         const graphData = {};
         // For each card in our data
-        // Big O is not great: O(n^2)
-        data.forEach(dataObject => {
-          const dataArray = dataObject[this.comparisonKey];
+        setCards.forEach(card => {
+          const types = card[this.comparisonKey];
 
           // For each array of data to check for in a single card
-          dataArray.forEach(dataLabel => {
+          types.forEach(type => {
             // Did we already begin weighting?
-            const isStored = graphData[dataLabel];
-            const value = isStored ? graphData[dataLabel].value + 1 : 1;
+            const isStored = graphData[type];
+            const value = isStored ? graphData[type].value + 1 : 1;
 
-            graphData[dataLabel] = {
-              label: dataLabel,
-              value
+            graphData[type] = {
+              type,
+              value,
             };
           });
         });
 
-        this.createGraph(graphData, label);
-
-        this.$store.dispatch("update loader", false);
-      }
-    },
-    async createGraph(graphData, label) {
-      try {
-        await this.$store.dispatch("update graph data", graphData);
-        // Clean out the last stored graph instance
+        // Store the graph data
+        await this.$store.dispatch('UPDATE_GRAPH_DATA', graphData);
+        // Clear out the last instance of chartData
         if (this.chartData) await this.chartData.destroy();
-        // Get and store new chart data on the Vue instance
-        this.chartData = await generatePieChart(this.graphData, label);
-      } catch (e) {
-        throw new Error(e);
+        // Make a new chart
+        this.chartData = await generatePieChart(this.graphData, this.colorSeed);
+        // Hide the loader
+        this.$store.dispatch('UPDATE_LOADER', false);
       }
     },
-    selectTab(event, endpoint) {
-      // Ensure dont we target the children of the main node
-      const $el = event.currentTarget;
-      const siblings = getDOMSiblings($el);
-
-      siblings.forEach($sibling => $sibling.classList.remove("active"));
-      $el.classList.add("active");
-
-      // Let's not fetch data from an endpoint if we
-      // have it already in the store
-      const isStored = this.$store.getters.setData[endpoint.file];
-      const shouldRefetch = this.shouldRefetch;
-      
-      if (shouldRefetch || !isStored) {
-        this.fetchFromEndpoint(endpoint);
-      } else {
-        this.calculateGraphData(
-          this.setData[endpoint.file].cards,
-          endpoint.label
-        );
-      }
-    }
   },
-  mounted() {
-    // Select the first tab
-    if (this.autoLoad) this.$refs["graph-tab"][0].click();
-  }
 };
 </script>
 
 <style lang="scss" scoped>
-@import "../assets/styles/includes/variables";
+@import '../assets/styles/includes/variables';
 
 .graph {
   position: relative;
@@ -200,66 +172,18 @@ export default {
     }
   }
 
-  &-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 15px;
-    grid-gap: 15px;
+  &-select {
+    text-align: center;
+    margin-top: 30px;
 
-    &--tab {
-      position: relative;
-      border: 1px solid lightgray;
-      padding: 10px;
-      background-color: white;
-      border-radius: 3px;
-      appearance: none;
-      font-family: $font-family;
-      font-size: 16px;
+    p {
       font-weight: bold;
-      flex: 0 0 100%;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.25s ease-in-out;
+    }
 
-      &:hover,
-      &.active {
-        border-color: $copy-color;
-        background-color: $copy-color;
-        color: white;
-        transform: translateY(3px);
-      }
-
-      &.active {
-        & {
-          position: relative;
-          background: $copy-color;
-          border: 1px solid $copy-color;
-        }
-
-        &:after,
-        &:before {
-          top: 100%;
-          left: 50%;
-          border: solid transparent;
-          content: " ";
-          height: 0;
-          width: 0;
-          position: absolute;
-          pointer-events: none;
-          border-color: transparent;
-          border-top-color: $copy-color;
-        }
-
-        &:after {
-          border-width: 10px;
-          margin-left: -10px;
-        }
-
-        &:before {
-          border-width: 10px;
-          margin-left: -10px;
-        }
-      }
+    select {
+      margin: 5px auto 0;
+      padding: 5px;
+      font-size: 16px;
     }
   }
 
@@ -291,14 +215,6 @@ export default {
       position: relative;
       flex: 0 0 100%;
       border-radius: 5px;
-    }
-  }
-}
-
-@media (min-width: 570px) {
-  .graph-tabs {
-    &--tab {
-      flex: 1;
     }
   }
 }
