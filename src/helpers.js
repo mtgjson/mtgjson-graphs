@@ -3,7 +3,7 @@ import { Chart } from 'chart.js';
 import chartConfig from './data/chart-config';
 
 // https://gist.github.com/0x263b/2bdd90886c2036a1ad5bcf06d6e6fb37
-export const stringsToColors = (strs = [], seed = 5) => {
+export const stringsToColors = (strs = [], seed = 4) => {
   return strs.map(str => {
     let hash = 0;
     if (str.length === 0) return hash;
@@ -21,15 +21,17 @@ export const stringsToColors = (strs = [], seed = 5) => {
 };
 
 // Generate a Chart.js graph
-export const generatePieChart = (graphData, seed) => {
+export const generatePieChart = (graphData, graphType = 'doughnut', seed) => {
   const ctx = document.getElementById('graph-container');
   const config = chartConfig();
   const data = {};
 
   // Alphabetize the data keys for consistent labeling
-  Object.keys(graphData).sort().forEach((key) => {
-    data[key] = graphData[key];
-  });
+  Object.keys(graphData)
+    .sort()
+    .forEach(key => {
+      data[key] = graphData[key];
+    });
 
   // Massage our data a bit for Chart.js
   for (let object in data) {
@@ -39,6 +41,11 @@ export const generatePieChart = (graphData, seed) => {
     config.data.datasets[0].data.push(value);
   }
 
+  // Assign the selected chart type
+  config.type = graphType;
+  if (graphType === 'bar' || graphType === 'line' || graphType === 'radar') {
+    config.options.legend.display = false;
+  }
   // Assign unique colors to each piece of the pie chart
   config.data.datasets[0].backgroundColor = stringsToColors(config.data.labels, seed);
   // Assign a label to render for the data

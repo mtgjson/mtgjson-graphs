@@ -2,40 +2,59 @@
   section.graph
     .content-wrapper
       .graph-header
-        h1 <img class="mtg-icon" src="../assets/images/mtg-pw-icon.svg" /> Magic: The Gathering Card Graph
+        h1
+          img(class="mtg-icon" src="../assets/images/mtg-pw-icon.svg")
+          span Magic: The Gathering Card Graph
         p.intro
-          strong This Vue/Chart.js-based data visualization fetches and charts <strong>Magic: The Gathering JSON</strong> data for a single set of cards.
-        p <strong>How to Use:</strong> Select a set from the options below to update the chart with a new data set. Hover over the chart for a count of each card type.
-        p <strong>The Data:</strong> The data that is visualized is the <pre>types</pre> property from each <pre>card</pre> object.
+          strong This Vue/Chart.js-based data visualization fetches and charts Magic: The Gathering JSON data for a single set of cards.
+        p
+          strong How to Use:
+          span  Select a set from the options below to update the chart with a new data set. You can also select a chart type to visualize the data differently.
+        p
+          strong The Data:
+          span  The data that is visualized is the <pre>types</pre> property from each <pre>card</pre> object from a set. Data is provided by <a href="https://mtgjson.com" target="_blank">MTGJSON.com</a>.
 
       .graph-content
         .graph-select
-          p Select a Set:
-          select(v-if="setsData.length > 0" v-model="selectedSet" @change.prevent="selectOption" ref="graphSelect")
-            option(v-for="(set, key) in setsData"
-            :value="set") {{ set.name }}
-          select(v-else)
-            option Loading...
-        h6(v-if="!chartData") Loading...
+          .graph-select--set
+            p Select a Set:
+            select(v-if="setsData.length > 0" v-model="selectedSet" @change.prevent="selectSet")
+              option(v-for="(set, key) in setsData"
+              :value="set") {{ set.name }}
+            select(v-else)
+              option Loading...
+          .graph-select--chart
+            p Select a chart:
+            select(@change.prevent="selectChart")
+              option(value="doughnut" selected) Doughnut
+              option(value="pie") Pie
+              option(value="polarArea") Polar
+              option(value="radar") Radar
+              option(value="bar") Bar
+              option(value="line") Line
+
+        Loader(v-if="!chartData")
         canvas#graph-container(:class="{isLoading}")
 
 </template>
 
 <script>
 import { generatePieChart } from '../helpers.js';
+import Loader from './Loader';
 
 export default {
   name: 'Graph',
+  components: { Loader },
   data() {
     return {
       endpointBase: 'https://mtgjson.com/json',
       comparisonKey: 'types',
       chartData: null,
       selectedSet: {},
-      autoLoad: true,
+      selectedChart: 'doughnut', // Chart type
       inited: false,
-      colorSeed: 3432, // Random number seed to change chart colors tonally, default: 5
-      shouldRefetch: false // true: fetch every call, false: use store
+      // colorSeed: 4, // Random number seed to change chart colors tonally
+      shouldRefetch: false, // true: fetch every call, false: use store
     };
   },
   computed: {
@@ -57,13 +76,12 @@ export default {
     await this.$store.dispatch('UPDATE_SETS_DATA', 'https://www.mtgjson.com/files/SetList.json');
 
     this.selectedSet = this.$store.getters.setsData[0];
-    this.selectOption();
+    this.selectSet();
   },
   methods: {
-    selectOption() {
-      // const $firstOption = Array.from(this.$refs['graphSelect'])[0];
-      const setCode = this.selectedSet.code; // || $firstOption.dataset.value;
-      const setLabel = this.selectedSet.name; // || $firstOption.innerText;
+    selectSet() {
+      const setCode = this.selectedSet.code;
+      const setLabel = this.selectedSet.name;
       // Let's not fetch data from an endpoint if we
       // have it already in the store
       const isStored = this.$store.getters.setData[setCode];
@@ -73,6 +91,11 @@ export default {
       } else {
         this.calculateGraphData(this.setData[setCode].cards, setLabel);
       }
+    },
+    selectChart(event) {
+      this.selectedChart = event.currentTarget.value;
+
+      this.selectSet();
     },
     async fetchFromEndpoint(setCode, setLabel) {
       try {
@@ -128,9 +151,12 @@ export default {
         // Store the graph data
         await this.$store.dispatch('UPDATE_GRAPH_DATA', graphData);
         // Clear out the last instance of chartData
-        if (this.chartData) await this.chartData.destroy();
+        if (this.chartData) {
+          await this.chartData.destroy();
+          this.chartData = null;
+        }
         // Make a new chart
-        this.chartData = await generatePieChart(this.graphData, this.colorSeed);
+        this.chartData = await generatePieChart(this.graphData, this.selectedChart, this.colorSeed);
         // Hide the loader
         this.$store.dispatch('UPDATE_LOADER', false);
       }
@@ -167,14 +193,15 @@ export default {
       margin-top: 15px;
 
       &.intro {
-        color: purple;
+        color: $accent-color;
       }
     }
   }
 
   &-select {
-    text-align: center;
-    margin-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 30px;
 
     p {
       font-weight: bold;
@@ -184,6 +211,7 @@ export default {
       margin: 5px auto 0;
       padding: 5px;
       font-size: 16px;
+      width: 100%;
     }
   }
 
@@ -194,6 +222,7 @@ export default {
     border-radius: 3px;
     background-color: white;
     margin-top: 30px;
+    padding: 30px;
     z-index: 2;
 
     h6 {
@@ -215,6 +244,17 @@ export default {
       position: relative;
       flex: 0 0 100%;
       border-radius: 5px;
+    }
+  }
+}
+
+@media (min-width: 570px) {
+  .graph {
+    &-content {
+    }
+
+    &-select {
+      grid-template-columns: 1fr 1fr;
     }
   }
 }

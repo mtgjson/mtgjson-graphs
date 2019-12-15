@@ -43,30 +43,19 @@ export default () => {
       layout: {
         padding: {
           top: 0,
-          right: 15,
-          bottom: 30,
-          left: 15,
+          right: 0,
+          bottom: 0,
+          left: 0,
         },
       },
       legend: {
+        // display: false,
         position: 'left',
         labels: {
           fontSize: 14,
           fontColor: blueColor,
           fontFamily,
         },
-      },
-      scales: {
-        axes: [
-          {
-            gridLines: {
-              display: false,
-            },
-            ticks: {
-              display: false,
-            },
-          },
-        ],
       },
     },
   };

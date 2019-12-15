@@ -1,23 +1,18 @@
 <template lang='pug'>
   main#app
-    Loader
     Graph
 </template>
 
 <script>
-import Graph from "./components/Graph";
-import Loader from "./components/Loader";
+import Graph from './components/Graph';
 
 export default {
-  name: "app",
-  components: {
-    Graph,
-    Loader
-  }
+  name: 'app',
+  components: { Graph },
 };
 </script>
 
 <style lang="scss">
-@import "./assets/styles/main";
+@import './assets/styles/main';
 </style>
 
