@@ -1,4 +1,4 @@
-# mtgjson-graphs
+# MTGJSON Graphs
 
 This Vue/Chart.js-based data visualization fetches Magic: The Gathering JSON data and charts the various card "types" present on cards for a single MTG set.
 
