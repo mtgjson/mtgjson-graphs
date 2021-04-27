@@ -4,7 +4,7 @@ This Vue/Chart.js-based data visualization fetches Magic: The Gathering JSON dat
 
 ## Project setup
 ```
-yarn install
+yarn
 ```
 
 ### Compiles and hot-reloads for development
@@ -21,7 +21,3 @@ yarn build
 ```
 yarn lint
 ```
-
-## Notes/Todo
-
-- Fetched sets JSON file to populate a dynamic list of set names.
