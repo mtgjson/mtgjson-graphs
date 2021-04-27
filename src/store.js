@@ -25,16 +25,9 @@ export const store = new Vuex.Store({
     UPDATE_SETS_DATA: async (store, url) => {
       try {
         const awaited = await fetch(url);
-        const promised = await awaited.json();
-        const sorted = promised.sort((a, b) => {
-          // Sort by latest
-          const aDate = new Date(a.releaseDate);
-          const bDate = new Date(b.releaseDate);
+        const { data } = await awaited.json();
 
-          return bDate - aDate;
-        });
-
-        return store.commit('SET_SETS_DATA', sorted);
+        return store.commit('SET_SETS_DATA', data);
       } catch (err) {
         console.error(err);
       }

@@ -47,14 +47,14 @@ export default {
   components: { Loader },
   data() {
     return {
-      endpointBase: 'https://mtgjson.com/json',
+      endpointBase: 'https://mtgjson.com/api/v5',
       comparisonKey: 'types',
       chartData: null,
       selectedSet: {},
       selectedChart: 'doughnut', // Chart type
       inited: false,
-      // colorSeed: 4, // Random number seed to change chart colors tonally
       shouldRefetch: false, // true: fetch every call, false: use store
+      // colorSeed: 4, // Random number seed to change chart colors tonally
     };
   },
   computed: {
@@ -73,9 +73,10 @@ export default {
   },
   async created() {
     // Get all the set endpoints as an array
-    await this.$store.dispatch('UPDATE_SETS_DATA', 'https://www.mtgjson.com/files/SetList.json');
+    await this.$store.dispatch('UPDATE_SETS_DATA', `${this.endpointBase}/SetList.json`);
 
     this.selectedSet = this.$store.getters.setsData[0];
+
     this.selectSet();
   },
   methods: {
@@ -89,7 +90,7 @@ export default {
       if (this.shouldRefetch || !isStored) {
         this.fetchFromEndpoint(setCode, setLabel);
       } else {
-        this.calculateGraphData(this.setData[setCode].cards, setLabel);
+        this.calculateGraphData(this.setData[setCode].data.cards, setLabel);
       }
     },
     selectChart(event) {
@@ -111,16 +112,15 @@ export default {
         }
 
         const awaited = await fetch(`${this.endpointBase}/${setCode}.json`, headers);
-        const promised = await awaited.json();
-
+        const setData = await awaited.json();
         const newSetData = {
           setCode,
-          setData: promised,
+          setData
         };
 
         await this.$store.dispatch('UPDATE_SET_DATA', newSetData);
 
-        await this.calculateGraphData(this.setData[setCode].cards, setLabel);
+        await this.calculateGraphData(this.setData[setCode].data.cards, setLabel);
       } catch (err) {
         // Bad fetch, reset the loader
         await this.$store.dispatch('UPDATE_LOADER', false);
@@ -250,9 +250,6 @@ export default {
 
 @media (min-width: 570px) {
   .graph {
-    &-content {
-    }
-
     &-select {
       grid-template-columns: 1fr 1fr;
     }
