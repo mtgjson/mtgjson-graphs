@@ -1,14 +1,14 @@
 <template lang='pug'>
   main#app
-    Graph
+    Page
 </template>
 
 <script>
-import Graph from './components/Graph';
+import Page from './components/Page';
 
 export default {
   name: 'app',
-  components: { Graph },
+  components: { Page },
 };
 </script>
 

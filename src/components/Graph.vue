@@ -1,52 +1,40 @@
 <template lang="pug">
-  section.graph
-    .content-wrapper
-      .graph-header
-        h1
-          img(class="mtg-icon" src="../assets/images/mtg-pw-icon.svg")
-          span Magic: The Gathering Card Graph
-        p.intro
-          strong This Vue/Chart.js-based data visualization fetches and charts Magic: The Gathering JSON data for a single set of cards.
-        p
-          strong How to Use:
-          span  Select a set from the options below to update the chart with a new data set. You can also select a chart type to visualize the data differently.
-        p
-          strong The Data:
-          span  The data that is visualized is the <pre>types</pre> property from each <pre>card</pre> object from a set. Data is provided by <a href="https://mtgjson.com" target="_blank">MTGJSON.com</a>.
+  .graph(:id="`graph-ref-${graphId}`")
+    .graph-content
+      .graph-select
+        .graph-select--set
+          p Select a Set:
+          select(v-if="setsData.length > 0" v-model="selectedSet" @change.prevent="selectSet")
+            option(v-for="(set, key) in setsData"
+            :value="set") {{ set.name }}
+          select(v-else)
+            option Loading...
+        .graph-select--chart
+          p Select a chart:
+          select(@change.prevent="selectChart")
+            option(value="doughnut" selected) Doughnut
+            option(value="pie") Pie
+            option(value="polarArea") Polar
+            option(value="radar") Radar
+            option(value="bar") Bar
+            option(value="line") Line
 
-      .graph-content
-        .graph-select
-          .graph-select--set
-            p Select a Set:
-            select(v-if="setsData.length > 0" v-model="selectedSet" @change.prevent="selectSet")
-              option(v-for="(set, key) in setsData"
-              :value="set") {{ set.name }}
-            select(v-else)
-              option Loading...
-          .graph-select--chart
-            p Select a chart:
-            select(@change.prevent="selectChart")
-              option(value="doughnut" selected) Doughnut
-              option(value="pie") Pie
-              option(value="polarArea") Polar
-              option(value="radar") Radar
-              option(value="bar") Bar
-              option(value="line") Line
-
-        Loader(v-if="!chartData")
-        canvas#graph-container(:class="{isLoading}")
+      Loader(v-if="!chartData")
+      canvas#graph-container(:class="{isLoading}")
 
 </template>
 
 <script>
 import { generatePieChart } from '../helpers.js';
 import Loader from './Loader';
+import Header from './Header';
 
 export default {
   name: 'Graph',
-  components: { Loader },
+  components: { Loader, Header },
   data() {
     return {
+      graphRef: undefined,
       endpointBase: 'https://mtgjson.com/api/v5',
       comparisonKey: 'types',
       chartData: null,
@@ -170,33 +158,7 @@ export default {
 
 .graph {
   position: relative;
-  padding: 50px 0 80px;
-  max-width: 800px;
   margin: 0 auto;
-
-  &-header {
-    h1 {
-      font-size: 30px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-
-      .mtg-icon {
-        width: 100%;
-        max-width: 30px;
-        height: auto;
-        margin-right: 20px;
-      }
-    }
-
-    p {
-      margin-top: 15px;
-
-      &.intro {
-        color: $accent-color;
-      }
-    }
-  }
 
   &-select {
     display: grid;
