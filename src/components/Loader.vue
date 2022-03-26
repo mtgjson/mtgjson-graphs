@@ -5,12 +5,7 @@
 
 <script>
 export default {
-  name: "Loader",
-  computed: {
-    isLoading() {
-      return this.$store.getters.isLoading;
-    }
-  }
+  name: "LoaderComponent",
 };
 </script>
 
