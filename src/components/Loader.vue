@@ -6,6 +6,11 @@
 <script>
 export default {
   name: "LoaderComponent",
+  computed: {
+    isLoading() {
+      return this.$store.getters.isLoading;
+    }
+  }
 };
 </script>
 
