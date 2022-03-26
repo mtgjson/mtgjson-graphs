@@ -30,7 +30,7 @@ import Loader from './Loader';
 import Header from './Header';
 
 export default {
-  name: 'Graph',
+  name: 'GraphComponent',
   components: { Loader, Header },
   data() {
     return {

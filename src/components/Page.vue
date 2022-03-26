@@ -9,10 +9,10 @@
 
 <script>
 import Header from './Header';
-import Graph from './Graph.vue';
+import Graph from './Graph';
 
 export default {
-  name: 'Page',
+  name: 'PageComponent',
   components: { Header, Graph }
 }
 </script>

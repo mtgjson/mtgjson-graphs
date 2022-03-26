@@ -4,7 +4,7 @@
       img(class="mtg-icon" src="../assets/images/mtg-pw-icon.svg")
       span Magic: The Gathering Card Graph
     p.intro
-      strong This Vue/Chart.js-based data visualization fetches and charts Magic: The Gathering JSON data for a single set of cards.
+      strong This Vue.js/Chart.js-based data visualization fetches and charts Magic: The Gathering JSON data for a single set of cards.
     p
       strong How to Use:
       span  Select a set from the options below to update the chart with a new data set. You can also select a chart type to visualize the data differently.
@@ -13,6 +13,12 @@
       span  The data that is visualized is the <pre>types</pre> property from each <pre>card</pre> object from a set. Data is provided by <a href="https://mtgjson.com" target="_blank">MTGJSON.com</a>.
 
 </template>
+
+<script>
+export default {
+  name: 'HeaderComponent'
+};
+</script>
 
 <style lang="scss" scoped>
 @import '../assets/styles/includes/variables';
